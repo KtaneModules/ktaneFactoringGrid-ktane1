@@ -519,14 +519,87 @@ public class factoringGridScript : MonoBehaviour {
     }
 
 #pragma warning disable 414
-   private readonly string TwitchHelpMessage = @"Use !{0} to do something.";
+   private readonly string TwitchHelpMessage = @"<!{0} a1 a2;a1 b1> to toggle the edges between adjacent cells, <!{0} reset> to reset the grid, <!{0} submit> to submit";
 #pragma warning restore 414
 
-   IEnumerator ProcessTwitchCommand (string Command) {
-      yield return null;
-   }
+   IEnumerator ProcessTwitchCommand (string command)
+    {
+        command = command.ToLowerInvariant().Trim();
+        if (Regex.IsMatch(command, @"^\s*reset\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        {
+            yield return null;
+            otherButtons[0].OnInteract();
+            yield break;
+        }
+        if (Regex.IsMatch(command, @"^\s*submit\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        {
+            yield return null;
+            otherButtons[1].OnInteract();
+            yield break;
+        }
+        command = command.Replace(" ", String.Empty);
+        string[] parameters = command.Split(',', ';');
+        yield return null;
+        for (int i = 0; i < parameters.Length; i++)
+        {
+            if (!Regex.IsMatch(parameters[i], @"^\s*([a-f][1-6]){2}\s*$", RegexOptions.IgnoreCase))
+            {
+                yield return "sendtochaterror The specified cell pair '" + parameters[i] + "' is invalid!";
+                yield break;
+            }
+            char[] parametersInCharArray = parameters[i].ToCharArray();
+            int charDifference = Math.Abs(parametersInCharArray[0] - parametersInCharArray[2]);
+            int numberDifference = Math.Abs(parametersInCharArray[1] - parametersInCharArray[3]);
+            if (!((charDifference == 1 && numberDifference == 0) || (charDifference == 0 && numberDifference == 1)))
+            {
+                yield return "sendtochaterror The specified cell pair '" + parameters[i] + "' is not adjacent!";
+                yield break;
+            }
+        }
+        for (int i = 0; i < parameters.Length; i++)
+        {
+            char[] parametersInCharArray = parameters[i].ToCharArray();
+            int charDifference = parametersInCharArray[0] - parametersInCharArray[2];
+            int numberDifference = parametersInCharArray[1] - parametersInCharArray[3];
+            if (Math.Abs(charDifference) == 1 && Math.Abs(numberDifference) == 0)
+            {
+                int buttonToPress = (parametersInCharArray[1] - '1') * 5 + ((charDifference > 0 ? parametersInCharArray[2] : parametersInCharArray[0]) - 'a');
+                hSelects[buttonToPress].OnInteract();
+            }
+            else if (Math.Abs(charDifference) == 0 && Math.Abs(numberDifference) == 1)
+            {
+                int buttonToPress = (parametersInCharArray[0] - 'a') * 5 + ((numberDifference > 0 ? parametersInCharArray[3] : parametersInCharArray[1]) - '1');
+                vSelects[buttonToPress].OnInteract();
+            }
+            yield return new WaitForSeconds(0.1f);
+        }
+    }
 
-   IEnumerator TwitchHandleForcedSolve () {
-      yield return null;
-   }
+    IEnumerator TwitchHandleForcedSolve()
+    {
+        while (!moduleSolved)
+        {
+            for (int i = 0; i < correctHP.Length; i++)
+            {
+                if (hPaths[i].GetComponent<MeshRenderer>().enabled != correctHP[i])
+                {
+                    vSelects[i].OnInteract();
+                    yield return null;
+                }
+                yield return null;
+            }
+            for (int i = 0; i < correctVP.Length; i++)
+            {
+                if (vPaths[i].GetComponent<MeshRenderer>().enabled != correctVP[i])
+                {
+                    hSelects[i].OnInteract();
+                    yield return null;
+                }
+                yield return null;
+            }
+            otherButtons[1].OnInteract();
+        }
+
+    }
+
 }
