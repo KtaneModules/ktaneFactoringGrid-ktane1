@@ -420,7 +420,6 @@ public class factoringGridScript : MonoBehaviour {
                 int counter = 1;
                 altPath[0] = a;
                 sb.Append(gridText[a].GetComponent<TextMesh>().text + ", ");
-                Debug.Log(sb.ToString());
                 while (connectedLines[a].Length == 1)
                 {
                     switch (connectedLines[a])
@@ -459,6 +458,7 @@ public class factoringGridScript : MonoBehaviour {
                     sb.Remove(sb.Length - 2, 2);
                     Debug.LogFormat("[Factoring Grid #{0}] The solution path in question: {1}", moduleId, sb.ToString());
                     module.HandlePass();
+                    audio.PlaySoundAtTransform("solve", transform);
                     moduleSolved = true;
                     StartCoroutine(solveAnim(altPath));
                     for (int i = 0; i < hPaths.Length; i++)
