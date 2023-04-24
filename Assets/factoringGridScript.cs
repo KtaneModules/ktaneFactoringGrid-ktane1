@@ -55,8 +55,12 @@ public class factoringGridScript : MonoBehaviour {
 
     void Start()
     {
-        generateNumbers();
         generatePath();
+        generateNumbers();
+        for (int i = 0; i < chosenPath.Length; i++)
+        {
+            gridText[chosenPath[i]].GetComponent<TextMesh>().text = generatedSequence[i].ToString();
+        }
         var sb = new StringBuilder();
         for (int i = 0; i < gridText.Length; i++)//Logging
         {
@@ -201,10 +205,6 @@ public class factoringGridScript : MonoBehaviour {
                 //Debug.Log(n + " path is " + chosenPath[n]);
             }
         }
-        for (int i = 0; i < chosenPath.Length; i++)
-        {
-            gridText[chosenPath[i]].GetComponent<TextMesh>().text = generatedSequence[i].ToString();
-        }
 
         for (int i = 0; i < chosenPath.Length - 1; i++)
         {
@@ -242,7 +242,7 @@ public class factoringGridScript : MonoBehaviour {
                     b = primes[UnityEngine.Random.Range(0, primes.Length)];
                     generatedSequence[i] = a * b;
                 }
-                while (generatedSequence[i] > 160);
+                while (generatedSequence[i] > 180);
             }
             else
             {
