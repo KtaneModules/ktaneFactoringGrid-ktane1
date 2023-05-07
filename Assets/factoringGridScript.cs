@@ -370,8 +370,8 @@ public class factoringGridScript : MonoBehaviour
                         {
                             a = false;
                             hFactors[current] = primes[UnityEngine.Random.Range(0, primes.Length)];
-                            if (current % 5 > 0) { a = hFactors[current - 1] == hFactors[current]; }
-                            if (current % 5 < 4) { a = hFactors[current + 1] == hFactors[current]; }
+                            if (current % 5 > 0) { if (hFactors[current - 1] == hFactors[current]) { a = true; } }
+                            if (current % 5 < 4) { if (hFactors[current + 1] == hFactors[current]) { a = true; } }
                         } while (hFactors[current] * prev > 180 || a);
                     }
                     prev = hFactors[current];
@@ -388,8 +388,8 @@ public class factoringGridScript : MonoBehaviour
                         {
                             a = false;
                             hFactors[current] = primes[UnityEngine.Random.Range(0, primes.Length)];
-                            if (current % 5 > 0) { a = hFactors[current - 1] == hFactors[current]; }
-                            if (current % 5 < 4) { a = hFactors[current + 1] == hFactors[current]; }
+                            if (current % 5 > 0) { if (hFactors[current - 1] == hFactors[current]) { a = true; } }
+                            if (current % 5 < 4) { if (hFactors[current + 1] == hFactors[current]) { a = true; } }
                         } while (hFactors[current] * prev > 180 || a);
                     }
                     prev = hFactors[current];
@@ -406,8 +406,8 @@ public class factoringGridScript : MonoBehaviour
                         {
                             a = false;
                             vFactors[current] = primes[UnityEngine.Random.Range(0, primes.Length)];
-                            if (current > 5) { a = vFactors[current - 6] == vFactors[current]; }
-                            if (current < 24) { a = vFactors[current + 6] == vFactors[current]; }
+                            if (current > 5) { if (vFactors[current - 6] == vFactors[current]) { a = true; } }
+                            if (current < 24) { if (vFactors[current + 6] == vFactors[current]) { a = true; } }
                         } while (vFactors[current] * prev > 180 || a);
                     }
                     prev = vFactors[current];
@@ -424,8 +424,8 @@ public class factoringGridScript : MonoBehaviour
                         {
                             a = false;
                             vFactors[current] = primes[UnityEngine.Random.Range(0, primes.Length)];
-                            if (current > 5) { a = vFactors[current - 6] == vFactors[current]; }
-                            if (current < 24) { a = vFactors[current + 6] == vFactors[current]; }
+                            if (current > 5) { if (vFactors[current - 6] == vFactors[current]) { a = true; } }
+                            if (current < 24) { if (vFactors[current + 6] == vFactors[current]) { a = true; } }
                         } while (vFactors[current] * prev > 180 || a);
                     }
                     prev = vFactors[current];
@@ -473,14 +473,19 @@ public class factoringGridScript : MonoBehaviour
             do
             {
                 a = false;
-                current = offsets[UnityEngine.Random.Range(0, offsets.Length)];
-                if (current != 1)
+                int rnd = 0;// UnityEngine.Random.Range(0, 2);
+                if (rnd == 0)
                 {
-                    if (i > 5) { if (!validVP.Contains(i - 6)) { a = !ExMath.IsCoprime(current, generatedSequence[i - 6]); } }//Up
-                    if (i < 30) { if (!validVP.Contains(i)) { a = !ExMath.IsCoprime(current, generatedSequence[i]); } }//Down
-                    if (i % 6 > 0) { if (!validHP.Contains((i / 6 * 5) + i % 6 - 1)) { a = !ExMath.IsCoprime(current, generatedSequence[i]); } }//Left
-                    if (i % 6 < 5) { if (!validHP.Contains((i / 6 * 5) + i % 6)) { a = !ExMath.IsCoprime(current, generatedSequence[i]); } }//Right
+                    current = offsets[UnityEngine.Random.Range(0, offsets.Length)];
+                    if (current != 1)
+                    {
+                        if (i > 5) { if (!validVP.Contains(i - 6)) { if (!ExMath.IsCoprime(current, generatedSequence[i - 6])) { a = true; } } }//Up
+                        if (i < 30) { if (!validVP.Contains(i)) { if (!ExMath.IsCoprime(current, generatedSequence[i])) { a = true; } } }//Down
+                        if (i % 6 > 0) { if (!validHP.Contains((i / 6 * 5) + i % 6 - 1)) { if (!ExMath.IsCoprime(current, generatedSequence[(i / 6 * 5) + i % 6 - 1])) { a = true; } } }//Left
+                        if (i % 6 < 5) { if (!validHP.Contains((i / 6 * 5) + i % 6)) { if (!ExMath.IsCoprime(current, generatedSequence[(i / 6 * 5) + i % 6])) { a = true; } } }//Right
+                    }
                 }
+                else { current = 1; }
             }
             while (generatedSequence[i] * current > 200 || a);
             generatedSequence[i] *= current;
