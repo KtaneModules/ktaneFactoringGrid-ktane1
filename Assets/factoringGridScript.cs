@@ -7,7 +7,8 @@ using System.Text.RegularExpressions;
 using UnityEngine;
 using KModkit;
 
-public class factoringGridScript : MonoBehaviour {
+public class factoringGridScript : MonoBehaviour
+{
 
     public new KMAudio audio;
     public KMBombInfo bomb;
@@ -26,7 +27,11 @@ public class factoringGridScript : MonoBehaviour {
     private int[] altPath = new int[36];
     private bool[] correctHP = new bool[30];
     private bool[] correctVP = new bool[30];
+    private List<int> otherPaths = new List<int>();
+    private List<int> validHP = new List<int>();
+    private List<int> validVP = new List<int>();
 
+    int[] primes = new int[] { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59 };
 
     private static int moduleIdCounter = 1;
     private int moduleId;
@@ -57,9 +62,9 @@ public class factoringGridScript : MonoBehaviour {
     {
         generatePath();
         generateNumbers();
-        for (int i = 0; i < chosenPath.Length; i++)
+        for (int i = 0; i < gridText.Length; i++)
         {
-            gridText[chosenPath[i]].GetComponent<TextMesh>().text = generatedSequence[i].ToString();
+            gridText[i].GetComponent<TextMesh>().text = generatedSequence[i].ToString();
         }
         var sb = new StringBuilder();
         for (int i = 0; i < gridText.Length; i++)//Logging
@@ -71,7 +76,7 @@ public class factoringGridScript : MonoBehaviour {
         sb = new StringBuilder();
         for (int i = 0; i < generatedSequence.Length; i++)
         {
-            sb.Append((generatedSequence[i]) + ", ");
+            sb.Append((generatedSequence[chosenPath[i]]) + ", ");
         }
         sb.Remove(sb.Length - 2, 2);
         Debug.LogFormat("[Factoring Grid #{0}] The solution path generated is as follows: {1}", moduleId, sb.ToString());
@@ -196,8 +201,8 @@ public class factoringGridScript : MonoBehaviour {
                 }
                 r = chosenPath[n] / 6;
                 c = chosenPath[n] % 6;
-                //Debug.Log("back to " + n);
             }
+            //Debug.Log("back to " + n);
             if (!repeat)
             {
                 n++;
@@ -212,98 +217,274 @@ public class factoringGridScript : MonoBehaviour {
             {
                 case 1://Right
                     correctHP[(chosenPath[i] / 6 * 5) + chosenPath[i] % 6] = true;
+                    validHP.Add((chosenPath[i] / 6 * 5) + chosenPath[i] % 6);
                     break;
                 case -1://Left
                     correctHP[(chosenPath[i] / 6 * 5) + chosenPath[i] % 6 - 1] = true;
+                    validHP.Add((chosenPath[i] / 6 * 5) + chosenPath[i] % 6 - 1);
                     break;
                 case -6://Up
                     correctVP[chosenPath[i] - 6] = true;
+                    validVP.Add(chosenPath[i] - 6);
                     break;
                 case 6://Down
                     correctVP[chosenPath[i]] = true;
+                    validVP.Add(chosenPath[i]);
                     break;
             }
         }
+        var possibleEdges = Enumerable.Range(0, 60).ToList();//0-29 for horizontal paths, 30-59 for vertical paths
+        for (int i = 0; i < correctHP.Length; i++)
+        {
+            if (correctHP[i]) { possibleEdges.Remove(i); }
+        }
+        for (int i = 0; i < correctVP.Length; i++)
+        {
+            if (correctVP[i]) { possibleEdges.Remove(i + 30); }
+        }
+        possibleEdges.Shuffle();
+        for (int i = 0; i < possibleEdges.Count; i++)
+        {
+            if (possibleEdges[i] > 30) { validVP.Add(possibleEdges[i] - 30); /*correctVP[possibleEdges[i] - 30] = true;*/ }
+            else { validHP.Add(possibleEdges[i]); /*correctHP[possibleEdges[i]] = true;*/ }
+            otherPaths.Add(possibleEdges[i]);
+            int test = pathChecker();
+            if (test != 2)//One detected from the start to end, another detected from end to start
+            {
+                if (possibleEdges[i] > 30) { validVP.Remove(possibleEdges[i] - 30); /*correctVP[possibleEdges[i] - 30] = false;*/ }
+                else { validHP.Remove(possibleEdges[i]); /*correctHP[possibleEdges[i]] = false;*/ }
+                otherPaths.Remove(possibleEdges[i]);
+            }
+        }
     }
 
-    int[] primes = new int[] { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59 };
+    int pathChecker()
+    {
+        var paths = new List<List<int>>();
+        for (int i = 0; i < 36; i++)
+        {
+            var path = new List<int>();
+            var counter = new int[36] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+            int n = 0;
+            path.Add(i);
+            counter[n]++;
+            //Debug.Log("starting with " + i);
+            while (n >= 0)
+            {
+                switch (counter[n])
+                {
+                    case 0:
+                        counter[n]++;
+                        if (path[n] - 6 >= 0 && !path.Contains(path[n] - 6) && validVP.Contains(path[n] - 6))//Up
+                        {
+                            path.Add(path[n] - 6);
+                            n++;
+                            //Debug.Log("moving up to " + path[n]);
+                            counter[n]++;
+                        }
+                        break;
+                    case 1:
+                        counter[n]++;
+                        if (path[n] + 6 < 36 && !path.Contains(path[n] + 6) && validVP.Contains(path[n]))//Down
+                        {
+                            path.Add(path[n] + 6);
+                            n++;
+                            //Debug.Log("moving down to " + path[n]);
+                            counter[n]++;
+                        }
+                        break;
+                    case 2:
+                        counter[n]++;
+                        if ((path[n] - 1 + 6) % 6 != 5 && !path.Contains(path[n] - 1) && validHP.Contains((path[n] / 6 * 5) + path[n] % 6 - 1))//Left
+                        {
+                            path.Add(path[n] - 1);
+                            n++;
+                            //Debug.Log("moving left to " + path[n]);
+                            counter[n]++;
+                        }
+                        break;
+                    case 3:
+                        counter[n]++;
+                        if ((path[n] + 1) % 6 != 0 && !path.Contains(path[n] + 1) && validHP.Contains((path[n] / 6 * 5) + path[n] % 6))//Right
+                        {
+                            path.Add(path[n] + 1);
+                            n++;
+                            //Debug.Log("moving right to " + path[n]);
+                            counter[n]++;
+                        }
+                        break;
+                    default:
+                        while (counter[n] > 3)
+                        {
+                            // Debug.Log("no way to go, backtracking... ");
+                            path.RemoveAt(path.Count() - 1);
+                            counter[n] = -1;
+                            n--;
+                            if (n < 0)
+                            {
+                                //Debug.Log("welp, ended");
+                                break;
+                            }
+                            counter[n]++;
+                            //Debug.Log("...to path #" + n + " which is " + path[n]);
+                        }
+                        break;
+                }
+                if (path.Count() > 35)
+                {
+                    //Debug.Log("found a path!");
+                    paths.Add(path);
+                    path.RemoveAt(path.Count() - 1);
+                    counter[n] = -1;
+                    n--;
+                    counter[n]++;
+                }
+            }
+
+        }
+        return paths.Count();
+    }
+
     void generateNumbers()
     {
-        int a = 0;
-        int r = 10;
-        int b = 0;
-        for (int i = 0;  i < generatedSequence.Length; i++)
+        var vFactors = new int[30] { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+        var hFactors = new int[30] { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+        int prev = -1;
+        int current;
+        bool a = false;
+
+        for (int i = 0; i < chosenPath.Length - 1; i++)//Prime factors on generated solution paths
         {
-            if (i == 0)
+            a = false;
+            switch (chosenPath[i + 1] - chosenPath[i])
             {
-                do
-                {
-                    a = UnityEngine.Random.Range(1, 11);
-                    b = primes[UnityEngine.Random.Range(0, primes.Length)];
-                    generatedSequence[i] = a * b;
-                }
-                while (generatedSequence[i] > 180);
-            }
-            else
-            {
-                int rnd = 0;
-                if (a == 1)
-                {
-                    rnd = 0;
-                }
-                else
-                {
-                    rnd = UnityEngine.Random.Range(0, 20);
-                    if (rnd < r)
+                case 1://Right
+                    current = (chosenPath[i] / 6 * 5) + chosenPath[i] % 6;
+                    if (prev < 0)
                     {
-                        rnd = 0;
-                        r -= 5;
+                        hFactors[current] = primes[UnityEngine.Random.Range(0, primes.Length)];
                     }
                     else
                     {
-                        rnd = 1;
-                        r += 5;
-                    }
-                }
-                switch (rnd)
-                {
-                    case 0:
-                        do
-                            a = UnityEngine.Random.Range(2, 11);
-                        while (a * b > 180);
-                        break;
-                    case 1:
-                        var factors = Factor(a);
-                        factors.Remove(1);
                         do
                         {
-                            a = factors[UnityEngine.Random.Range(0, factors.Count())];
-                        }
-                        while (!primes.Contains(a));
+                            a = false;
+                            hFactors[current] = primes[UnityEngine.Random.Range(0, primes.Length)];
+                            if (current % 5 > 0) { a = hFactors[current - 1] == hFactors[current]; }
+                            if (current % 5 < 4) { a = hFactors[current + 1] == hFactors[current]; }
+                        } while (hFactors[current] * prev > 180 || a);
+                    }
+                    prev = hFactors[current];
+                    break;
+                case -1://Left
+                    current = (chosenPath[i] / 6 * 5) + chosenPath[i] % 6 - 1;
+                    if (prev < 0)
+                    {
+                        hFactors[current] = primes[UnityEngine.Random.Range(0, primes.Length)];
+                    }
+                    else
+                    {
                         do
-                            b = primes[UnityEngine.Random.Range(0, primes.Length)];
-                        while (a * b > 180);
-                        break;
-                }
-                generatedSequence[i] = a * b;
+                        {
+                            a = false;
+                            hFactors[current] = primes[UnityEngine.Random.Range(0, primes.Length)];
+                            if (current % 5 > 0) { a = hFactors[current - 1] == hFactors[current]; }
+                            if (current % 5 < 4) { a = hFactors[current + 1] == hFactors[current]; }
+                        } while (hFactors[current] * prev > 180 || a);
+                    }
+                    prev = hFactors[current];
+                    break;
+                case -6://Up
+                    current = chosenPath[i] - 6;
+                    if (prev < 0)
+                    {
+                        vFactors[current] = primes[UnityEngine.Random.Range(0, primes.Length)];
+                    }
+                    else
+                    {
+                        do
+                        {
+                            a = false;
+                            vFactors[current] = primes[UnityEngine.Random.Range(0, primes.Length)];
+                            if (current > 5) { a = vFactors[current - 6] == vFactors[current]; }
+                            if (current < 24) { a = vFactors[current + 6] == vFactors[current]; }
+                        } while (vFactors[current] * prev > 180 || a);
+                    }
+                    prev = vFactors[current];
+                    break;
+                case 6://Down
+                    current = chosenPath[i];
+                    if (prev < 0)
+                    {
+                        vFactors[current] = primes[UnityEngine.Random.Range(0, primes.Length)];
+                    }
+                    else
+                    {
+                        do
+                        {
+                            a = false;
+                            vFactors[current] = primes[UnityEngine.Random.Range(0, primes.Length)];
+                            if (current > 5) { a = vFactors[current - 6] == vFactors[current]; }
+                            if (current < 24) { a = vFactors[current + 6] == vFactors[current]; }
+                        } while (vFactors[current] * prev > 180 || a);
+                    }
+                    prev = vFactors[current];
+                    break;
             }
         }
-    }
-
-    public static List<int> Factor(int k)
-    {
-        List<int> factors = new List<int>();
-        int max = (int)Math.Sqrt(k);
-        for (int factor = 1; factor < k; ++factor)
+        for (int i = 0; i < generatedSequence.Length; i++)
         {
-            if (k % factor == 0)
+            var primeList = new List<int>();
+            if (i - 6 >= 0 && validVP.Contains(i - 6)) { primeList.Add(vFactors[i - 6]); }//Up
+            if (i + 6 < 36 && validVP.Contains(i)) { primeList.Add(vFactors[i]); }//Down
+            if ((i - 1 + 6) % 6 != 5 && validHP.Contains((i / 6 * 5) + i % 6 - 1)) { primeList.Add(hFactors[(i / 6 * 5) + i % 6 - 1]); }//Left
+            if ((i + 1) % 6 != 0 && validHP.Contains((i / 6 * 5) + i % 6)) { primeList.Add(hFactors[(i / 6 * 5) + i % 6]); }//Right
+            generatedSequence[i] = primeList.Aggregate(1, (acc, val) => acc * val);
+        }
+
+        var b = new int[] { 1 };
+        var offsets = b.Concat(primes).ToArray();
+        for (int i = 0; i < otherPaths.Count(); i++)//Prime factors for decoy paths
+        {//0-29 for horizontal paths, 30-59 for vertical paths
+            if (i < 30)
             {
-                factors.Add(factor);
-                if (factor != k / factor)
-                    factors.Add(k / factor);
+                do
+                {
+                    hFactors[i] = offsets[UnityEngine.Random.Range(0, offsets.Length)];
+                }
+                while (generatedSequence[i / 5 * 6 + i % 5] * hFactors[i] > 200 || generatedSequence[i / 5 * 6 + i % 5 + 1] * hFactors[i] > 200);
+                generatedSequence[i / 5 * 6 + i % 5] *= hFactors[i];//Left number
+                generatedSequence[i / 5 * 6 + i % 5 + 1] *= hFactors[i];//Right number
+            }
+            else
+            {
+                do
+                {
+                    vFactors[i - 30] = offsets[UnityEngine.Random.Range(0, offsets.Length)];
+                }
+                while (generatedSequence[i - 30] * vFactors[i] > 200 || generatedSequence[i - 30 + 6] * vFactors[i] > 200);
+                generatedSequence[i - 30] *= vFactors[i];//Top number
+                generatedSequence[i - 30 + 6] *= vFactors[i];//Bottom number
             }
         }
-        return factors;
+
+        for (int i = 0; i < generatedSequence.Length; i++)//Prime offsets for each cell for extra randomisation
+        {
+            do
+            {
+                a = false;
+                current = offsets[UnityEngine.Random.Range(0, offsets.Length)];
+                if (current != 1)
+                {
+                    if (i > 5) { if (!validVP.Contains(i - 6)) { a = !ExMath.IsCoprime(current, generatedSequence[i - 6]); } }//Up
+                    if (i < 30) { if (!validVP.Contains(i)) { a = !ExMath.IsCoprime(current, generatedSequence[i]); } }//Down
+                    if (i % 6 > 0) { if (!validHP.Contains((i / 6 * 5) + i % 6 - 1)) { a = !ExMath.IsCoprime(current, generatedSequence[i]); } }//Left
+                    if (i % 6 < 5) { if (!validHP.Contains((i / 6 * 5) + i % 6)) { a = !ExMath.IsCoprime(current, generatedSequence[i]); } }//Right
+                }
+            }
+            while (generatedSequence[i] * current > 200 || a);
+            generatedSequence[i] *= current;
+        }
     }
 
     void buttonHandler(int k)
@@ -347,7 +528,7 @@ public class factoringGridScript : MonoBehaviour {
                         {
                             if (ExMath.IsCoprime(Int32.Parse(gridText[i].GetComponent<TextMesh>().text), Int32.Parse(gridText[i + 1].GetComponent<TextMesh>().text)))
                             {
-                                Debug.LogFormat("[Factoring Grid #{0}] Invalid number connection found, strike.", moduleId);
+                                Debug.LogFormat("[Factoring Grid #{0}] Invalid number connection found between {1} and {2}, strike.", moduleId, gridText[i].GetComponent<TextMesh>().text, gridText[i + 1].GetComponent<TextMesh>().text);
                                 module.HandleStrike();
                                 audio.PlaySoundAtTransform("strike", transform);
                                 return;
@@ -359,7 +540,7 @@ public class factoringGridScript : MonoBehaviour {
                         {
                             if (ExMath.IsCoprime(Int32.Parse(gridText[i].GetComponent<TextMesh>().text), Int32.Parse(gridText[i - 1].GetComponent<TextMesh>().text)))
                             {
-                                Debug.LogFormat("[Factoring Grid #{0}] Invalid number connection found, strike.", moduleId);
+                                Debug.LogFormat("[Factoring Grid #{0}] Invalid number connection found between {1} and {2}, strike.", moduleId, gridText[i].GetComponent<TextMesh>().text, gridText[i - 1].GetComponent<TextMesh>().text);
                                 module.HandleStrike();
                                 audio.PlaySoundAtTransform("strike", transform);
                                 return;
@@ -371,7 +552,7 @@ public class factoringGridScript : MonoBehaviour {
                         {
                             if (ExMath.IsCoprime(Int32.Parse(gridText[i].GetComponent<TextMesh>().text), Int32.Parse(gridText[i - 6].GetComponent<TextMesh>().text)))
                             {
-                                Debug.LogFormat("[Factoring Grid #{0}] Invalid number connection found, strike.", moduleId);
+                                Debug.LogFormat("[Factoring Grid #{0}] Invalid number connection found between {1} and {2}, strike.", moduleId, gridText[i].GetComponent<TextMesh>().text, gridText[i - 6].GetComponent<TextMesh>().text);
                                 module.HandleStrike();
                                 audio.PlaySoundAtTransform("strike", transform);
                                 return;
@@ -383,7 +564,7 @@ public class factoringGridScript : MonoBehaviour {
                         {
                             if (ExMath.IsCoprime(Int32.Parse(gridText[i].GetComponent<TextMesh>().text), Int32.Parse(gridText[i + 6].GetComponent<TextMesh>().text)))
                             {
-                                Debug.LogFormat("[Factoring Grid #{0}] Invalid number connection found, strike.", moduleId);
+                                Debug.LogFormat("[Factoring Grid #{0}] Invalid number connection found between {1} and {2}, strike.", moduleId, gridText[i].GetComponent<TextMesh>().text, gridText[i + 6].GetComponent<TextMesh>().text);
                                 module.HandleStrike();
                                 audio.PlaySoundAtTransform("strike", transform);
                                 return;
@@ -519,10 +700,10 @@ public class factoringGridScript : MonoBehaviour {
     }
 
 #pragma warning disable 414
-   private readonly string TwitchHelpMessage = @"<!{0} a1 a2;a1 b1> to toggle the edges between adjacent cells, <!{0} reset> to reset the grid, <!{0} submit> to submit";
+    private readonly string TwitchHelpMessage = @"<!{0} a1 a2;a1 b1> to toggle the edges between adjacent cells, <!{0} reset> to reset the grid, <!{0} submit> to submit";
 #pragma warning restore 414
 
-   IEnumerator ProcessTwitchCommand (string command)
+    IEnumerator ProcessTwitchCommand(string command)
     {
         command = command.ToLowerInvariant().Trim();
         if (Regex.IsMatch(command, @"^\s*reset\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
