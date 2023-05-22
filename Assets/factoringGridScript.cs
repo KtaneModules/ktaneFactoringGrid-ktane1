@@ -245,17 +245,26 @@ public class factoringGridScript : MonoBehaviour
         possibleEdges.Shuffle();
         for (int i = 0; i < possibleEdges.Count; i++)
         {
-            if (possibleEdges[i] > 30) { validVP.Add(possibleEdges[i] - 30); /*correctVP[possibleEdges[i] - 30] = true;*/ }
-            else { validHP.Add(possibleEdges[i]); /*correctHP[possibleEdges[i]] = true;*/ }
+            if (possibleEdges[i] >= 30) { validVP.Add(possibleEdges[i] - 30); }
+            else { validHP.Add(possibleEdges[i]); }
             otherPaths.Add(possibleEdges[i]);
             int test = pathChecker();
             if (test != 2)//One detected from the start to end, another detected from end to start
             {
-                if (possibleEdges[i] > 30) { validVP.Remove(possibleEdges[i] - 30); /*correctVP[possibleEdges[i] - 30] = false;*/ }
-                else { validHP.Remove(possibleEdges[i]); /*correctHP[possibleEdges[i]] = false;*/ }
+                if (possibleEdges[i] >= 30) { validVP.Remove(possibleEdges[i] - 30);}
+                else { validHP.Remove(possibleEdges[i]); }
                 otherPaths.Remove(possibleEdges[i]);
             }
         }
+
+        /*foreach (int i in validHP)
+        {
+            hPaths[i].GetComponent<MeshRenderer>().enabled = true;
+        }
+        foreach (int i in validVP)
+        {
+            vPaths[i].GetComponent<MeshRenderer>().enabled = true;
+        }*/
     }
 
     int pathChecker()
@@ -356,6 +365,7 @@ public class factoringGridScript : MonoBehaviour
         for (int i = 0; i < chosenPath.Length - 1; i++)//Prime factors on generated solution paths
         {
             a = false;
+            var tempPrimes = primes.ToList();
             switch (chosenPath[i + 1] - chosenPath[i])
             {
                 case 1://Right
@@ -368,10 +378,16 @@ public class factoringGridScript : MonoBehaviour
                     {
                         do
                         {
+                            if (tempPrimes.Count() == 0)
+                            {
+                                hFactors[current] = 1;
+                                i -= 2;
+                                break;
+                            }
                             a = false;
-                            hFactors[current] = primes[UnityEngine.Random.Range(0, primes.Length)];
-                            if (current % 5 > 0) { if (hFactors[current - 1] == hFactors[current]) { a = true; } }
-                            if (current % 5 < 4) { if (hFactors[current + 1] == hFactors[current]) { a = true; } }
+                            hFactors[current] = tempPrimes[UnityEngine.Random.Range(0, tempPrimes.Count() - 1)];
+                            tempPrimes.Remove(hFactors[current]);
+                            a = edgeChecker(current, hFactors[current], true, hFactors, vFactors);
                         } while (hFactors[current] * prev > 180 || a);
                     }
                     prev = hFactors[current];
@@ -386,10 +402,16 @@ public class factoringGridScript : MonoBehaviour
                     {
                         do
                         {
+                            if (tempPrimes.Count() == 0)
+                            {
+                                hFactors[current] = 1;
+                                i -= 2;
+                                break;
+                            }
                             a = false;
-                            hFactors[current] = primes[UnityEngine.Random.Range(0, primes.Length)];
-                            if (current % 5 > 0) { if (hFactors[current - 1] == hFactors[current]) { a = true; } }
-                            if (current % 5 < 4) { if (hFactors[current + 1] == hFactors[current]) { a = true; } }
+                            hFactors[current] = tempPrimes[UnityEngine.Random.Range(0, tempPrimes.Count() - 1)];
+                            tempPrimes.Remove(hFactors[current]);
+                            a = edgeChecker(current, hFactors[current], true, hFactors, vFactors);
                         } while (hFactors[current] * prev > 180 || a);
                     }
                     prev = hFactors[current];
@@ -404,10 +426,16 @@ public class factoringGridScript : MonoBehaviour
                     {
                         do
                         {
+                            if (tempPrimes.Count() == 0)
+                            {
+                                hFactors[current] = 1;
+                                i -= 2;
+                                break;
+                            }
                             a = false;
-                            vFactors[current] = primes[UnityEngine.Random.Range(0, primes.Length)];
-                            if (current > 5) { if (vFactors[current - 6] == vFactors[current]) { a = true; } }
-                            if (current < 24) { if (vFactors[current + 6] == vFactors[current]) { a = true; } }
+                            vFactors[current] = tempPrimes[UnityEngine.Random.Range(0, tempPrimes.Count() - 1)];
+                            tempPrimes.Remove(vFactors[current]);
+                            a = edgeChecker(current, vFactors[current], false, hFactors, vFactors);
                         } while (vFactors[current] * prev > 180 || a);
                     }
                     prev = vFactors[current];
@@ -422,10 +450,16 @@ public class factoringGridScript : MonoBehaviour
                     {
                         do
                         {
+                            if (tempPrimes.Count() == 0)
+                            {
+                                hFactors[current] = 1;
+                                i -= 2;
+                                break;
+                            }
                             a = false;
-                            vFactors[current] = primes[UnityEngine.Random.Range(0, primes.Length)];
-                            if (current > 5) { if (vFactors[current - 6] == vFactors[current]) { a = true; } }
-                            if (current < 24) { if (vFactors[current + 6] == vFactors[current]) { a = true; } }
+                            vFactors[current] = tempPrimes[UnityEngine.Random.Range(0, tempPrimes.Count() - 1)];
+                            tempPrimes.Remove(vFactors[current]);
+                            a = edgeChecker(current, vFactors[current], false, hFactors, vFactors);
                         } while (vFactors[current] * prev > 180 || a);
                     }
                     prev = vFactors[current];
@@ -443,16 +477,27 @@ public class factoringGridScript : MonoBehaviour
         }
 
         var b = new int[] { 1 };
-        var offsets = b.Concat(primes).ToArray();
-        for (int i = 0; i < otherPaths.Count(); i++)//Prime factors for decoy paths
+        var offsets = new List<int>();
+        foreach (int i in otherPaths)//Prime factors for decoy paths
         {//0-29 for horizontal paths, 30-59 for vertical paths
+            offsets = b.Concat(primes).ToArray().ToList();
             if (i < 30)
             {
                 do
                 {
-                    hFactors[i] = offsets[UnityEngine.Random.Range(0, offsets.Length)];
+                    a = false;
+                    hFactors[i] = offsets[UnityEngine.Random.Range(0, offsets.Count())];
+                    offsets.Remove(hFactors[i]);
+                    if (hFactors[i] != 1)
+                    {
+                        a = edgeChecker(i, hFactors[i], true, hFactors, vFactors);
+                    }
+                    if (offsets.Count() == 0)
+                    {
+                        a = false; hFactors[i] = 1;
+                    }
                 }
-                while (generatedSequence[i / 5 * 6 + i % 5] * hFactors[i] > 200 || generatedSequence[i / 5 * 6 + i % 5 + 1] * hFactors[i] > 200);
+                while (generatedSequence[i / 5 * 6 + i % 5] * hFactors[i] > 200 || generatedSequence[i / 5 * 6 + i % 5 + 1] * hFactors[i] > 200 || a);
                 generatedSequence[i / 5 * 6 + i % 5] *= hFactors[i];//Left number
                 generatedSequence[i / 5 * 6 + i % 5 + 1] *= hFactors[i];//Right number
             }
@@ -460,29 +505,45 @@ public class factoringGridScript : MonoBehaviour
             {
                 do
                 {
-                    vFactors[i - 30] = offsets[UnityEngine.Random.Range(0, offsets.Length)];
+                    a = false;
+                    vFactors[i - 30] = offsets[UnityEngine.Random.Range(0, offsets.Count())];
+                    offsets.Remove(vFactors[i - 30]);
+                    if (vFactors[i - 30] != 1)
+                    {
+                        a = edgeChecker(i - 30, vFactors[i - 30], false, hFactors, vFactors);
+                    }
+                    if (offsets.Count() == 0)
+                    {
+                        a = false; vFactors[i - 30] = 1;
+                    }
                 }
-                while (generatedSequence[i - 30] * vFactors[i] > 200 || generatedSequence[i - 30 + 6] * vFactors[i] > 200);
-                generatedSequence[i - 30] *= vFactors[i];//Top number
-                generatedSequence[i - 30 + 6] *= vFactors[i];//Bottom number
+                while (generatedSequence[i - 30] * vFactors[i - 30] > 200 || generatedSequence[i - 30 + 6] * vFactors[i - 30] > 200 || a);
+                generatedSequence[i - 30] *= vFactors[i - 30];//Top number
+                generatedSequence[i - 30 + 6] *= vFactors[i - 30];//Bottom number
             }
         }
-
+        
         for (int i = 0; i < generatedSequence.Length; i++)//Prime offsets for each cell for extra randomisation
         {
+            int rnd = UnityEngine.Random.Range(0, 2);
+            offsets = b.Concat(primes).ToArray().ToList();
             do
             {
                 a = false;
-                int rnd = 0;// UnityEngine.Random.Range(0, 2);
                 if (rnd == 0)
                 {
-                    current = offsets[UnityEngine.Random.Range(0, offsets.Length)];
+                    current = offsets[UnityEngine.Random.Range(0, offsets.Count())];
+                    offsets.Remove(current);
                     if (current != 1)
                     {
                         if (i > 5) { if (!validVP.Contains(i - 6)) { if (!ExMath.IsCoprime(current, generatedSequence[i - 6])) { a = true; } } }//Up
-                        if (i < 30) { if (!validVP.Contains(i)) { if (!ExMath.IsCoprime(current, generatedSequence[i])) { a = true; } } }//Down
-                        if (i % 6 > 0) { if (!validHP.Contains((i / 6 * 5) + i % 6 - 1)) { if (!ExMath.IsCoprime(current, generatedSequence[(i / 6 * 5) + i % 6 - 1])) { a = true; } } }//Left
-                        if (i % 6 < 5) { if (!validHP.Contains((i / 6 * 5) + i % 6)) { if (!ExMath.IsCoprime(current, generatedSequence[(i / 6 * 5) + i % 6])) { a = true; } } }//Right
+                        if (i < 30) { if (!validVP.Contains(i)) { if (!ExMath.IsCoprime(current, generatedSequence[i + 6])) { a = true; } } }//Down
+                        if (i % 6 > 0) { if (!validHP.Contains((i / 6 * 5) + i % 6 - 1)) { if (!ExMath.IsCoprime(current, generatedSequence[i - 1])) { a = true; } } }//Left
+                        if (i % 6 < 5) { if (!validHP.Contains((i / 6 * 5) + i % 6)) { if (!ExMath.IsCoprime(current, generatedSequence[i + 1])) { a = true; } } }//Right
+                    }
+                    if (offsets.Count() == 0)
+                    {
+                        a = false; current = 1;
                     }
                 }
                 else { current = 1; }
@@ -490,6 +551,94 @@ public class factoringGridScript : MonoBehaviour
             while (generatedSequence[i] * current > 200 || a);
             generatedSequence[i] *= current;
         }
+    }
+
+    bool edgeChecker(int edge, int current, bool isHoriz, int[] hFactors, int[] vFactors)//Basically checks for all relations of adjacent squares of the two squares linked by the given edge
+    {
+        var primeCheckList = new List<int>();
+        int cell = 0;
+        if (isHoriz)//Horizontal relation edge case
+        {
+            cell = edge / 5 * 6 + edge % 5;
+            if (cell > 5)//Checks for the two cells above the link
+            {
+                primeCheckList.Add(hFactors[(cell - 6) / 6 * 5 + (cell - 6) % 6]);//Checks the link between the two cells
+                if (cell % 6 > 0) { primeCheckList.Add(hFactors[(cell - 6) / 6 * 5 + (cell - 6) % 6 - 1]); }//Checks the link to the left of the first
+                if (cell % 6 < 4) { primeCheckList.Add(hFactors[(cell - 6 + 1) / 6 * 5 + (cell - 6 + 1) % 6]); }//Checks the link to the right of the second
+                if (cell > 11)
+                {
+                    primeCheckList.Add(vFactors[cell - 6 - 6]);//Checks the link above the first
+                    primeCheckList.Add(vFactors[cell - 6 - 6 + 1]);//Checks the link above the second
+                }
+            }
+            if (cell < 30)//Checks for the two cells below the link
+            {
+                primeCheckList.Add(hFactors[(cell + 6) / 6 * 5 + (cell + 6) % 6]);//Checks the link between the two cells
+                if (cell % 6 > 0) { primeCheckList.Add(hFactors[(cell + 6) / 6 * 5 + (cell + 6) % 6 - 1]); }//Checks the link to the left of the first
+                if (cell % 6 < 4) { primeCheckList.Add(hFactors[(cell + 6 + 1) / 6 * 5 + (cell + 6 + 1) % 6]); }//Checks the link to the right of the second
+                if (cell < 24)
+                {
+                    primeCheckList.Add(vFactors[cell + 6]);//Checks the link below the first
+                    primeCheckList.Add(vFactors[cell + 6 + 1]);//Checks the link below the second
+                }
+            }
+            if (cell % 6 > 0)//Checks for the cell to the left of left cell of the link
+            {
+                if (cell > 5) { primeCheckList.Add(vFactors[cell - 1 - 6]); }//Checks the link above the cell
+                if (cell < 30) { primeCheckList.Add(vFactors[cell - 1]); }//Checks the link below the cell
+                if (cell % 6 > 1) { primeCheckList.Add(hFactors[(cell - 1) / 6 * 5 + (cell - 1) % 6 - 1]); }//Checks the link to the left of the cell
+            }
+            if (cell % 6 < 4)//Checks for the cell to the right of right cell of the link
+            {
+                if (cell > 5) { primeCheckList.Add(vFactors[cell + 2 - 6]); }//Checks the link above the cell
+                if (cell < 30) { primeCheckList.Add(vFactors[cell + 2]); }//Checks the link below the cell
+                if (cell % 6 < 3) { primeCheckList.Add(hFactors[(cell + 2) / 6 * 5 + (cell + 2) % 6]); }//Checks the link to the right of the cell
+            }
+        } 
+        else//Vertical relation edge case
+        {
+            cell = edge;
+            if (cell % 6 > 0)//Checks for the two cells to the left of the link
+            {
+                primeCheckList.Add(vFactors[cell - 1]);//Checks the link between the two cells
+                if (cell > 5) { primeCheckList.Add(vFactors[cell - 1 - 6]); }//Checks the link above the first cell
+                if (cell < 24) { primeCheckList.Add(vFactors[cell - 1 + 6]); }//Checks the link below the second cell
+                if (cell % 6 > 1)
+                {
+                    primeCheckList.Add(hFactors[(cell - 1) / 6 * 5 + (cell - 1) % 6 - 1]);//Checks the link to the left of the first
+                    primeCheckList.Add(hFactors[(cell - 1 + 6) / 6 * 5 + (cell - 1 + 6) % 6 - 1]);//Checks the link to the left of the second
+                }
+            }
+            if (cell % 6 < 5)//Checks for the two cells to the right of the link
+            {
+                primeCheckList.Add(vFactors[cell + 1]);//Checks the link between the two cells
+                if (cell > 5) { primeCheckList.Add(vFactors[cell + 1 - 6]); }//Checks the link above the first cell
+                if (cell < 24) { primeCheckList.Add(vFactors[cell + 1 + 6]); }//Checks the link below the second cell
+                if (cell % 6 > 1)
+                {
+                    primeCheckList.Add(hFactors[(cell + 1) / 6 * 5 + (cell + 1) % 6 - 1]);//Checks the link to the right of the first
+                    primeCheckList.Add(hFactors[(cell + 1 + 6) / 6 * 5 + (cell + 1 + 6) % 6 - 1]);//Checks the link to the right of the second
+                }
+            }
+            if (cell > 5)//Checks for the cell above the above cell of the link
+            {
+                if (cell % 6 > 1) { primeCheckList.Add(hFactors[(cell - 6) / 6 * 5 + (cell - 6) % 6 - 1]); }//Checks the link to the left of the cell
+                if (cell % 6 < 5) { primeCheckList.Add(hFactors[(cell - 6) / 6 * 5 + (cell - 6) % 6]); }//Checks the link to the right of the cell
+                if (cell > 11) { primeCheckList.Add(vFactors[cell - 12]); }//Checks the link above the cell
+            }
+            if (cell < 24)//Checks for the cell below the below cell of the link
+            {
+                if (cell % 6 > 1) { primeCheckList.Add(hFactors[(cell + 12) / 6 * 5 + (cell + 12) % 6 - 1]); }//Checks the link to the left of the cell
+                if (cell % 6 < 5) { primeCheckList.Add(hFactors[(cell + 12) / 6 * 5 + (cell + 12) % 6]); }//Checks the link to the right of the cell
+                if (cell < 18) { primeCheckList.Add(vFactors[cell + 12]); }//Checks the link below the cell
+            }
+        }
+
+        foreach (int k in primeCheckList)
+        {
+            if (k == current) { return true; }
+        }
+        return false;
     }
 
     void buttonHandler(int k)
@@ -705,7 +854,7 @@ public class factoringGridScript : MonoBehaviour
     }
 
 #pragma warning disable 414
-    private readonly string TwitchHelpMessage = @"<!{0} a1 a2;a1 b1> to toggle the edges between adjacent cells, <!{0} reset> to reset the grid, <!{0} submit> to submit";
+    private readonly string TwitchHelpMessage = @"<!{0} a1 a2;a1 b1> to toggle the edges between adjacent cells, with letters denoting columns and numbers denoting rows, <!{0} reset> to reset the grid, <!{0} submit> to submit";
 #pragma warning restore 414
 
     IEnumerator ProcessTwitchCommand(string command)
@@ -750,12 +899,12 @@ public class factoringGridScript : MonoBehaviour
             if (Math.Abs(charDifference) == 1 && Math.Abs(numberDifference) == 0)
             {
                 int buttonToPress = (parametersInCharArray[1] - '1') * 5 + ((charDifference > 0 ? parametersInCharArray[2] : parametersInCharArray[0]) - 'a');
-                hSelects[buttonToPress].OnInteract();
+                vSelects[buttonToPress].OnInteract();
             }
             else if (Math.Abs(charDifference) == 0 && Math.Abs(numberDifference) == 1)
             {
-                int buttonToPress = (parametersInCharArray[0] - 'a') * 5 + ((numberDifference > 0 ? parametersInCharArray[3] : parametersInCharArray[1]) - '1');
-                vSelects[buttonToPress].OnInteract();
+                int buttonToPress = (parametersInCharArray[0] - 'a') + ((numberDifference > 0 ? parametersInCharArray[3] : parametersInCharArray[1]) - '1') * 6;
+                hSelects[buttonToPress].OnInteract();
             }
             yield return new WaitForSeconds(0.1f);
         }
@@ -765,6 +914,7 @@ public class factoringGridScript : MonoBehaviour
     {
         while (!moduleSolved)
         {
+            yield return null;
             for (int i = 0; i < correctHP.Length; i++)
             {
                 if (hPaths[i].GetComponent<MeshRenderer>().enabled != correctHP[i])
