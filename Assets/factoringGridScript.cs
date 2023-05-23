@@ -359,7 +359,8 @@ public class factoringGridScript : MonoBehaviour
         var vFactors = new int[30] { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
         var hFactors = new int[30] { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
         int prev = -1;
-        int current;
+        int current = 0;
+        int prevCurrent = 0;
         bool a = false;
 
         for (int i = 0; i < chosenPath.Length - 1; i++)//Prime factors on generated solution paths
@@ -381,16 +382,19 @@ public class factoringGridScript : MonoBehaviour
                             if (tempPrimes.Count() == 0)
                             {
                                 hFactors[current] = 1;
+                                if (prevCurrent < 30) prev = hFactors[prevCurrent];
+                                else prev = vFactors[prevCurrent - 30];
                                 i -= 2;
                                 break;
                             }
                             a = false;
-                            hFactors[current] = tempPrimes[UnityEngine.Random.Range(0, tempPrimes.Count() - 1)];
+                            hFactors[current] = tempPrimes[UnityEngine.Random.Range(0, tempPrimes.Count())];
                             tempPrimes.Remove(hFactors[current]);
                             a = edgeChecker(current, hFactors[current], true, hFactors, vFactors);
                         } while (hFactors[current] * prev > 180 || a);
                     }
                     prev = hFactors[current];
+                    prevCurrent = current;
                     break;
                 case -1://Left
                     current = (chosenPath[i] / 6 * 5) + chosenPath[i] % 6 - 1;
@@ -405,16 +409,19 @@ public class factoringGridScript : MonoBehaviour
                             if (tempPrimes.Count() == 0)
                             {
                                 hFactors[current] = 1;
+                                if (prevCurrent < 30) prev = hFactors[prevCurrent];
+                                else prev = vFactors[prevCurrent - 30]; 
                                 i -= 2;
                                 break;
                             }
                             a = false;
-                            hFactors[current] = tempPrimes[UnityEngine.Random.Range(0, tempPrimes.Count() - 1)];
+                            hFactors[current] = tempPrimes[UnityEngine.Random.Range(0, tempPrimes.Count())];
                             tempPrimes.Remove(hFactors[current]);
                             a = edgeChecker(current, hFactors[current], true, hFactors, vFactors);
                         } while (hFactors[current] * prev > 180 || a);
                     }
                     prev = hFactors[current];
+                    prevCurrent = current;
                     break;
                 case -6://Up
                     current = chosenPath[i] - 6;
@@ -428,17 +435,20 @@ public class factoringGridScript : MonoBehaviour
                         {
                             if (tempPrimes.Count() == 0)
                             {
-                                hFactors[current] = 1;
+                                vFactors[current] = 1;
+                                if (prevCurrent < 30) prev = hFactors[prevCurrent];
+                                else prev = vFactors[prevCurrent - 30]; 
                                 i -= 2;
                                 break;
                             }
                             a = false;
-                            vFactors[current] = tempPrimes[UnityEngine.Random.Range(0, tempPrimes.Count() - 1)];
+                            vFactors[current] = tempPrimes[UnityEngine.Random.Range(0, tempPrimes.Count())];
                             tempPrimes.Remove(vFactors[current]);
                             a = edgeChecker(current, vFactors[current], false, hFactors, vFactors);
                         } while (vFactors[current] * prev > 180 || a);
                     }
                     prev = vFactors[current];
+                    prevCurrent = current + 30;
                     break;
                 case 6://Down
                     current = chosenPath[i];
@@ -452,19 +462,23 @@ public class factoringGridScript : MonoBehaviour
                         {
                             if (tempPrimes.Count() == 0)
                             {
-                                hFactors[current] = 1;
+                                vFactors[current] = 1;
+                                if (prevCurrent < 30) prev = hFactors[prevCurrent];
+                                else prev = vFactors[prevCurrent - 30];
                                 i -= 2;
                                 break;
                             }
                             a = false;
-                            vFactors[current] = tempPrimes[UnityEngine.Random.Range(0, tempPrimes.Count() - 1)];
+                            vFactors[current] = tempPrimes[UnityEngine.Random.Range(0, tempPrimes.Count())];
                             tempPrimes.Remove(vFactors[current]);
                             a = edgeChecker(current, vFactors[current], false, hFactors, vFactors);
                         } while (vFactors[current] * prev > 180 || a);
                     }
                     prev = vFactors[current];
+                    prevCurrent = current + 30;
                     break;
             }
+            //Debug.Log(prev);
         }
         for (int i = 0; i < generatedSequence.Length; i++)
         {
@@ -474,6 +488,7 @@ public class factoringGridScript : MonoBehaviour
             if ((i - 1 + 6) % 6 != 5 && validHP.Contains((i / 6 * 5) + i % 6 - 1)) { primeList.Add(hFactors[(i / 6 * 5) + i % 6 - 1]); }//Left
             if ((i + 1) % 6 != 0 && validHP.Contains((i / 6 * 5) + i % 6)) { primeList.Add(hFactors[(i / 6 * 5) + i % 6]); }//Right
             generatedSequence[i] = primeList.Aggregate(1, (acc, val) => acc * val);
+            //Debug.Log("NUMBERS ABOUT TO GENERATE: "+ generatedSequence[i]);
         }
 
         var b = new int[] { 1 };
@@ -487,6 +502,8 @@ public class factoringGridScript : MonoBehaviour
                 {
                     a = false;
                     hFactors[i] = offsets[UnityEngine.Random.Range(0, offsets.Count())];
+                    //Debug.Log(generatedSequence[i / 5 * 6 + i % 5] + " and " + generatedSequence[i / 5 * 6 + i % 5 + 1] + ":");
+                    //Debug.Log(offsets.Count() + " THAT IS " + hFactors[i]);
                     offsets.Remove(hFactors[i]);
                     if (hFactors[i] != 1)
                     {
@@ -507,6 +524,8 @@ public class factoringGridScript : MonoBehaviour
                 {
                     a = false;
                     vFactors[i - 30] = offsets[UnityEngine.Random.Range(0, offsets.Count())];
+                    //Debug.Log(generatedSequence[i - 30] + " and " + generatedSequence[i - 30 + 6] + ":");
+                    //Debug.Log(offsets.Count() + " THAT IS " + vFactors[i - 30]);
                     offsets.Remove(vFactors[i - 30]);
                     if (vFactors[i - 30] != 1)
                     {
@@ -533,6 +552,7 @@ public class factoringGridScript : MonoBehaviour
                 if (rnd == 0)
                 {
                     current = offsets[UnityEngine.Random.Range(0, offsets.Count())];
+                    //Debug.Log("CHECKING " + current);
                     offsets.Remove(current);
                     if (current != 1)
                     {
