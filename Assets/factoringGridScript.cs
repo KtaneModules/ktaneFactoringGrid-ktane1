@@ -80,6 +80,13 @@ public class factoringGridScript : MonoBehaviour
         }
         sb.Remove(sb.Length - 2, 2);
         Debug.LogFormat("[Factoring Grid #{0}] The solution path generated is as follows: {1}", moduleId, sb.ToString());
+        sb = new StringBuilder();
+        for (int i = 0; i < chosenPath.Length; i++)
+        {
+            sb.Append(chosenPath[i] + ", ");
+        }
+        sb.Remove(sb.Length - 2, 2);
+        Debug.LogFormat("[Factoring Grid #{0}] The solution path in terms of positions: {1}", moduleId, sb.ToString());
     }
 
     void generatePath()
