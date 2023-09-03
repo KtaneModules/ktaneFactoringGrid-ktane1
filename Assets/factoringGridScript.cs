@@ -881,7 +881,7 @@ public class factoringGridScript : MonoBehaviour
     }
 
 #pragma warning disable 414
-    private readonly string TwitchHelpMessage = @"<!{0} a1 a2;a1 b1> to toggle the edges between adjacent cells, with letters denoting columns and numbers denoting rows, <!{0} reset> to reset the grid, <!{0} submit> to submit";
+    private readonly string TwitchHelpMessage = @"<!{0} a1 a2 b2 b1;c3 c4 d4 d3> to toggle the edges that make a path between given cells, with letters denoting columns and numbers denoting rows, <!{0} reset> to reset the grid, <!{0} submit> to submit";
 #pragma warning restore 414
 
     IEnumerator ProcessTwitchCommand(string command)
@@ -899,41 +899,55 @@ public class factoringGridScript : MonoBehaviour
             otherButtons[1].OnInteract();
             yield break;
         }
-        command = command.Replace(" ", String.Empty);
         string[] parameters = command.Split(',', ';');
-        yield return null;
-        for (int i = 0; i < parameters.Length; i++)
+        foreach (string param in parameters)
         {
-            if (!Regex.IsMatch(parameters[i], @"^\s*([a-f][1-6]){2}\s*$", RegexOptions.IgnoreCase))
+            string[] test = param.Split(' ');
+            for (int i = 0; i < test.Length; i++)
             {
-                yield return "sendtochaterror The specified cell pair '" + parameters[i] + "' is invalid!";
-                yield break;
-            }
-            char[] parametersInCharArray = parameters[i].ToCharArray();
-            int charDifference = Math.Abs(parametersInCharArray[0] - parametersInCharArray[2]);
-            int numberDifference = Math.Abs(parametersInCharArray[1] - parametersInCharArray[3]);
-            if (!((charDifference == 1 && numberDifference == 0) || (charDifference == 0 && numberDifference == 1)))
-            {
-                yield return "sendtochaterror The specified cell pair '" + parameters[i] + "' is not adjacent!";
-                yield break;
+                if (!Regex.IsMatch(test[i], @"^\s*([a-f][1-6])\s*$", RegexOptions.IgnoreCase))
+                {
+                    yield return "sendtochaterror The specified cell '" + test[i] + "' is invalid!";
+                    yield break;
+                }
+                if (test.Length < 2)
+                {
+                    yield return "sendtochaterror You need at least two adjacent cells to form a proper path!";
+                    yield break;
+                }
+                if (i > 0)
+                {
+                    int charDifference = Math.Abs(test[i][0] - test[i - 1][0]);
+                    int numberDifference = Math.Abs(test[i][1] - test[i - 1][1]);
+                    if (!((charDifference == 1 && numberDifference == 0) || (charDifference == 0 && numberDifference == 1)))
+                    {
+                        yield return "sendtochaterror The specified cell pair '" + test[i - 1] + " " + test[i] + "' is not adjacent!";
+                        yield break;
+                    }
+                }
             }
         }
-        for (int i = 0; i < parameters.Length; i++)
+        foreach (string param in parameters)
         {
-            char[] parametersInCharArray = parameters[i].ToCharArray();
-            int charDifference = parametersInCharArray[0] - parametersInCharArray[2];
-            int numberDifference = parametersInCharArray[1] - parametersInCharArray[3];
-            if (Math.Abs(charDifference) == 1 && Math.Abs(numberDifference) == 0)
+            yield return null;
+            string[] test = param.Split(' ');
+            
+            for (int i = 1; i < test.Length; i++)
             {
-                int buttonToPress = (parametersInCharArray[1] - '1') * 5 + ((charDifference > 0 ? parametersInCharArray[2] : parametersInCharArray[0]) - 'a');
-                vSelects[buttonToPress].OnInteract();
+                int charDifference = test[i][0] - test[i - 1][0];
+                int numberDifference = test[i][1] - test[i - 1][1];
+                if (Math.Abs(charDifference) == 1 && Math.Abs(numberDifference) == 0)
+                {
+                    int buttonToPress = (test[i][1] - '1') * 5 + ((charDifference > 0 ? test[i][0] : test[i - 1][0]) - 'a' - 1);
+                    vSelects[buttonToPress].OnInteract();
+                }
+                else if (Math.Abs(charDifference) == 0 && Math.Abs(numberDifference) == 1)
+                {
+                    int buttonToPress = (test[i][0] - 'a') + ((numberDifference > 0 ? test[i][1] : test[i - 1][1]) - '1' - 1) * 6;
+                    hSelects[buttonToPress].OnInteract();
+                }
+                yield return new WaitForSeconds(0.1f);
             }
-            else if (Math.Abs(charDifference) == 0 && Math.Abs(numberDifference) == 1)
-            {
-                int buttonToPress = (parametersInCharArray[0] - 'a') + ((numberDifference > 0 ? parametersInCharArray[3] : parametersInCharArray[1]) - '1') * 6;
-                hSelects[buttonToPress].OnInteract();
-            }
-            yield return new WaitForSeconds(0.1f);
         }
     }
 
